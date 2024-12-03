@@ -217,20 +217,17 @@ class InstagramDownloaderApp:
         json_dict = json.loads(text_data)  # Convert the JSON string into a dictionary
         pretty_json = json.dumps(json_dict, indent=4)  # Prettify the JSON output
 
-        def videos_from_resources(pretty_json):
-            video_urls = []
-            video_resources_regex = r'"video_resources": \[(.*?)\]'
-            video_resources = re.findall(video_resources_regex, pretty_json, re.DOTALL)
-            
-            for resource_data in video_resources:
-                src_pattern = r'"src":\s*"([^"]+)"'
-                src_matches = re.findall(src_pattern, resource_data)
-                
-                if src_matches:
-                    first_url = src_matches[0]
-                    video_urls.append(first_url)
-            
-            return video_urls
+        def extract_image_urls(json_dict):
+            image_urls = []
+            try:
+                for reel in json_dict['data']['reels_media']:
+                    for item in reel['items']:
+                        for resource in item['video_resources']:
+                            image_url = resource['src']
+                            image_urls.append(image_url)
+            except (KeyError, TypeError) as e:
+                print(f"No reel video found")
+            return image_urls
         def videos2(pretty_json):
             image_urls = []
             video_url2_regex = r'"video_versions": \[(.*?)\]'
@@ -244,9 +241,23 @@ class InstagramDownloaderApp:
                     image_urls.append(first_url)
             return image_urls
         
+        def images2(pretty_json):
+            image_urls = []
+            image_candidates_regex = r'"image_versions2":\s*\{\s*"candidates":\s*\[(.*?)\]'
+            candidates_blocks = re.findall(image_candidates_regex, pretty_json, re.DOTALL)
+            
+            for block in candidates_blocks:
+                url_pattern = r'"url":\s*"([^"]+)"'
+                url_matches = re.findall(url_pattern, block)
+                if url_matches:
+                    image_urls.append(url_matches[0])
+            
+            return image_urls
+        
 
-        urls1 = videos_from_resources(pretty_json)
+        urls1 = extract_image_urls(json_dict)
         urls4 = videos2(pretty_json)
+        urls5 = images2(pretty_json)
         urls = []
         video_url_regex = r'"video_url":\s+"([^"]+)"'
         http_url_regex = r'"display_url":\s+"([^"]+)"' 
@@ -259,6 +270,7 @@ class InstagramDownloaderApp:
         urls.extend(http_urls)
         urls.extend(modpost_urls)
         urls.extend(urls1)
+        urls.extend(urls5)
         
 
 
